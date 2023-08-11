@@ -33,7 +33,7 @@ vagrant up
 ssh vagrant@192.168.56.101
 ssh vagrant@192.168.56.102
 ssh vagrant@192.168.56.103
-```
+```  
 `export ANSIBLE_HOST_KEY_CHECKING=False` should work too.
 7. Provision the VMs with docker engine, Portainer, nginx and haproxy
 ```bash
