@@ -28,11 +28,17 @@ ssh_pub_key = File.readlines("/home/ubuntu/.ssh/id_rsa.pub").first.strip
 ```bash
 vagrant up
 ```
-6. Provision the VMs with docker engine, Portainer, nginx and haproxy
+6. When you first run the playbook `prov.yaml`, you should first ssh to each VMs to add keys to known_hosts
+```bash
+ssh vagrant@192.168.56.101
+ssh vagrant@192.168.56.102
+ssh vagrant@192.168.56.103
+```
+7. Provision the VMs with docker engine, Portainer, nginx and haproxy
 ```bash
 ansible-playbook -i hosts prov.yaml
 ```
-7. Check if the containers are alive
+8. Check if the containers are alive
 ```bash
 curl http://192.168.56.102:8080 ; echo
 curl -k https://192.168.56.103 ; echo
@@ -40,7 +46,7 @@ curl http://192.168.56.103 ; echo
 ```
 They should all respond with **I'm alive**
 
-## Limitations //TODO
+## Limitations //TODOS
 * The deployment was tested on a Ubuntu 20.04.03 LTS Linux Ansible controller host
   - [ ] Test on other Distributions
 * The VMs are configured with a private network
