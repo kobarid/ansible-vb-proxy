@@ -34,7 +34,6 @@ ssh vagrant@192.168.56.101
 ssh vagrant@192.168.56.102
 ssh vagrant@192.168.56.103
 ```  
-`export ANSIBLE_HOST_KEY_CHECKING=False` should work too.  
 7. Provision the VMs with docker engine, Portainer, nginx and haproxy
 ```bash
 ansible-playbook -i hosts prov.yaml
@@ -58,3 +57,4 @@ They should all respond with **I'm alive**
 * https://dmarko.tcl-digitrade.com/post/2021/ansible-docker-with-portainer/
 * https://jhooq.com/vagrant-copy-public-key/
 * https://stackoverflow.com/a/67392439/14809031
+* https://gist.github.com/shirou/6928012
