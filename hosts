@@ -1,0 +1,4 @@
+[vms]
+vm1 ansible_host=192.168.56.101 ansible_ssh_user=vagrant
+vm2 ansible_host=192.168.56.102 ansible_ssh_user=vagrant
+vm3 ansible_host=192.168.56.103 ansible_ssh_user=vagrant
