@@ -1,0 +1,134 @@
+- name: Deploy Docker containers with Ansible
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Docker Engine
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker Engine
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Install python-docker package
+      apt:
+        name: python3-docker
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Deploy Portainer container
+      docker_container:
+        name: portainer
+        image: portainer/portainer-ce
+        ports:
+          - "9000:9000"
+        volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+        restart_policy: always
+        state: started
+      when: inventory_hostname == groups['vms'][0]
+
+    - name: Deploy Nginx container
+      docker_container:
+        name: nginx
+        image: nginx
+        ports:
+          - "8080:80"
+        volumes:
+          - "/usr/share/nginx/html:/usr/share/nginx/html"
+        command: "nginx -g 'daemon off;'"
+        restart_policy: always
+        state: started
+      when: inventory_hostname == groups['vms'][1]
+
+    - name: Create index.html file
+      copy:
+        content: "I'm alive"
+        dest: "/usr/share/nginx/html/index.html"
+      when: inventory_hostname == groups['vms'][1]
+
+    - name: Creates needed directory for haproxy
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /usr/local/etc/haproxy
+        - /etc/ssl/crt
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Copy HAProxy configuration file
+      copy:
+        content: |
+                frontend http_front
+                  bind *:80
+                  bind *:443 ssl crt /etc/ssl/crt/ansible.com.pem
+                  mode http
+                  default_backend http_back
+                backend http_back
+                  mode http
+                  server server1 192.168.56.102:8080
+        dest: /usr/local/etc/haproxy/haproxy.cfg
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Create private key (RSA, 4096 bits)
+      community.crypto.openssl_privatekey:
+        path: /etc/ssl/crt/ansible.com.crt.key
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Generate a Self Signed OpenSSL certificate
+      community.crypto.x509_certificate:
+        path: /etc/ssl/crt/ansible.com.crt
+        privatekey_path: /etc/ssl/crt/ansible.com.crt.key
+        provider: selfsigned
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Creating an empty file
+      file:
+        path: "/etc/ssl/crt/ansible.com.pem"
+        state: touch
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Concatenate crt and key in to single file
+      shell: "cat /etc/ssl/crt/ansible.com.crt /etc/ssl/crt/ansible.com.crt.key > /etc/ssl/crt/ansible.com.pem"
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Change file permissions
+      ansible.builtin.file:
+        path: /etc/ssl/crt/ansible.com.pem
+        mode: '666'
+      when: inventory_hostname == groups['vms'][2]
+
+    - name: Deploy HAProxy container
+      docker_container:
+        name: haproxy
+        image: haproxy
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - /usr/local/etc/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+          - /etc/ssl/crt:/etc/ssl/crt
+        recreate: yes
+      when: inventory_hostname == groups['vms'][2]
